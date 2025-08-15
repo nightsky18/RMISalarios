@@ -30,7 +30,6 @@ De esta forma, se ejemplifica cómo distribuir la lógica de negocio en un entor
 - **Java SE 17+**
 - **Java RMI API**
 - **Visual Studio Code** con Java Extension Pack
-- **PlantUML** (para diagrama de clases)
 
 ---
 
@@ -56,3 +55,4 @@ De esta forma, se ejemplifica cómo distribuir la lógica de negocio en un entor
 ## Autores
 - Mateo Berrío Cardona
 - Mariana Montoya Sepúlveda
+
