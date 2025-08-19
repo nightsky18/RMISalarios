@@ -1,5 +1,8 @@
 package Implement;
 import Interface.SalarioInterface;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.PrintWriter;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.Random;
@@ -69,4 +72,59 @@ public class SalarioImplement extends UnicastRemoteObject implements SalarioInte
         }
         return total;
     }
+    
+@Override
+public void exportarCSV(String nombreArchivo) throws RemoteException {
+    try {
+        // Ruta relativa al proyecto: carpeta Docs
+        File carpetaDocs = new File("Docs");
+        if (!carpetaDocs.exists()) {
+            carpetaDocs.mkdirs(); // crea la carpeta si no existe
+        }
+
+        // Archivo dentro de Docs
+        File archivo = new File(carpetaDocs, nombreArchivo);
+
+        try (PrintWriter pw = new PrintWriter(new FileWriter(archivo))) {
+            // Encabezado
+            pw.print("Empleado/Mes");
+            for (int j = 0; j < meses; j++) {
+                pw.print(",Mes " + (j + 1));
+            }
+            pw.println(",Total Empleado");
+
+            // Filas por empleado
+            for (int i = 0; i < empleados; i++) {
+                pw.print("Empleado " + (i + 1));
+                double suma = 0;
+                for (int j = 0; j < meses; j++) {
+                    pw.print("," + matriz[i][j]);
+                    suma += matriz[i][j];
+                }
+                pw.println("," + suma);
+            }
+
+            // Promedios por mes
+            pw.print("Promedio por mes");
+            for (int j = 0; j < meses; j++) {
+                double sumaMes = 0;
+                for (int i = 0; i < empleados; i++) {
+                    sumaMes += matriz[i][j];
+                }
+                pw.print("," + (sumaMes / empleados));
+            }
+            pw.println(",");
+
+            // Total general
+            pw.println("Total General," + totalGeneral());
+        }
+
+        System.out.println("Archivo CSV exportado correctamente en: " + archivo.getAbsolutePath());
+
+    } catch (Exception e) {
+        e.printStackTrace();
+        throw new RemoteException("Error al exportar CSV", e);
+    }
+}
+
 }

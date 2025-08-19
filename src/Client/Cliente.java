@@ -40,7 +40,13 @@ public class Cliente {
 
             // Llama y muestra el total general.
             System.out.println("\nTotal general pagado: $" + servicio.totalGeneral());
-            sc.close();
+            System.out.print("\n¿Desea exportar los resultados a un archivo CSV? (s/n): ");
+            char opcion = sc.next().charAt(0);
+            if (opcion == 's' || opcion == 'S') {
+                servicio.exportarCSV("salarios.csv");
+                System.out.println("Resultados exportados en 'salarios.csv'");
+            }
+
         } catch (Exception e) {
             e.printStackTrace();
         }

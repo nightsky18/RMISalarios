@@ -18,4 +18,7 @@ public interface SalarioInterface extends Remote {
 
     // Devuelve el total general de todos los salarios.
     double totalGeneral() throws RemoteException;
+   // Exporta la matriz de salarios a un archivo CSV.
+    void exportarCSV(String nombreArchivo) throws RemoteException;
+
 }
