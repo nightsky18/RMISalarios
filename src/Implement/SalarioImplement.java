@@ -1,130 +1,163 @@
 package Implement;
+
 import Interface.SalarioInterface;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.PrintWriter;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
-import java.util.Random;
+import java.util.*;
 
-// Implementación real del objeto remoto.
-// Implementa la interfaz SalarioInterface y extiende UnicastRemoteObject para habilitar RMI.
-// Aquí se almacena la matriz de salarios y se realizan los cálculos solicitados por el cliente.
-// Rol: aquí vive la lógica de negocio que el cliente invoca remotamente.
+// Implementación del objeto remoto para RMI.
+// Implementa la lógica de negocio y maneja los datos de cada cliente por separado.
 public class SalarioImplement extends UnicastRemoteObject implements SalarioInterface {
-    private double[][] matriz; // Matriz de salarios [empleados][meses]
-    private int empleados;
-    private int meses;
+    // Mapas para almacenar la matriz de salarios, empleados y meses por cada cliente.
+    private Map<Integer, double[][]> matrices;
+    private Map<Integer, Integer> empleadosPorCliente;
+    private Map<Integer, Integer> mesesPorCliente;
+    private int contadorClientes; // Contador para asignar IDs únicos a los clientes.
 
-    public SalarioImplement() throws RemoteException {}
+    public SalarioImplement() throws RemoteException {
+        matrices = new HashMap<>();
+        empleadosPorCliente = new HashMap<>();
+        mesesPorCliente = new HashMap<>();
+        contadorClientes = 0;
+    }
 
-    // Genera la matriz de salarios aleatorios para los empleados y meses indicados.
+    // Registra un nuevo cliente y devuelve un ID único.
     @Override
-    public void generarMatriz(int empleados, int meses) throws RemoteException {
-        this.empleados = empleados;
-        this.meses = meses;
-        matriz = new double[empleados][meses];
-        Random rand = new Random();
+    public synchronized int registrarCliente() throws RemoteException {
+        contadorClientes++;
+        System.out.println("Cliente registrado con ID: " + contadorClientes);
+        return contadorClientes;
+    }
 
+    // Genera una matriz de salarios aleatorios para el cliente especificado.
+    @Override
+    public void generarMatriz(int clienteId, int empleados, int meses) throws RemoteException {
+        double[][] matriz = new double[empleados][meses];
+        Random rand = new Random();
         for (int i = 0; i < empleados; i++) {
             for (int j = 0; j < meses; j++) {
                 matriz[i][j] = 1000 + rand.nextInt(9001); // Salario aleatorio entre 1000 y 10000
             }
         }
+        matrices.put(clienteId, matriz);
+        empleadosPorCliente.put(clienteId, empleados);
+        mesesPorCliente.put(clienteId, meses);
+         System.out.println(" Cliente " + clienteId + " generó una matriz de " + empleados + " empleados y " + meses + " meses.");
     }
 
-    // Calcula el total de salarios por cada empleado.
+    // Calcula el total de salarios por empleado para el cliente.
     @Override
-    public double[] totalPorEmpleado() throws RemoteException {
+    public double[] totalPorEmpleado(int clienteId) throws RemoteException {
+        double[][] matriz = matrices.get(clienteId);
+        int empleados = empleadosPorCliente.get(clienteId);
+        int meses = mesesPorCliente.get(clienteId);
         double[] totales = new double[empleados];
         for (int i = 0; i < empleados; i++) {
             double suma = 0;
-            for (int j = 0; j < meses; j++) {
-                suma += matriz[i][j];
-            }
+            for (int j = 0; j < meses; j++) suma += matriz[i][j];
             totales[i] = suma;
         }
         return totales;
     }
 
-    // Calcula el promedio de salarios por cada mes.
+    // Calcula el promedio de salarios por mes para el cliente.
     @Override
-    public double[] promedioPorMes() throws RemoteException {
+    public double[] promedioPorMes(int clienteId) throws RemoteException {
+        double[][] matriz = matrices.get(clienteId);
+        int empleados = empleadosPorCliente.get(clienteId);
+        int meses = mesesPorCliente.get(clienteId);
         double[] promedios = new double[meses];
         for (int j = 0; j < meses; j++) {
             double suma = 0;
-            for (int i = 0; i < empleados; i++) {
-                suma += matriz[i][j];
-            }
+            for (int i = 0; i < empleados; i++) suma += matriz[i][j];
             promedios[j] = suma / empleados;
         }
         return promedios;
     }
 
-    // Calcula el total general de todos los salarios.
+    // Calcula el total general de salarios para el cliente.
     @Override
-    public double totalGeneral() throws RemoteException {
+    public double totalGeneral(int clienteId) throws RemoteException {
+        double[][] matriz = matrices.get(clienteId);
+        int empleados = empleadosPorCliente.get(clienteId);
+        int meses = mesesPorCliente.get(clienteId);
         double total = 0;
         for (int i = 0; i < empleados; i++) {
-            for (int j = 0; j < meses; j++) {
-                total += matriz[i][j];
-            }
+            for (int j = 0; j < meses; j++) total += matriz[i][j];
         }
         return total;
     }
-    
-@Override
-public void exportarCSV(String nombreArchivo) throws RemoteException {
-    try {
-        // Ruta relativa al proyecto: carpeta Docs
-        File carpetaDocs = new File("Docs");
-        if (!carpetaDocs.exists()) {
-            carpetaDocs.mkdirs(); // crea la carpeta si no existe
-        }
 
-        // Archivo dentro de Docs
-        File archivo = new File(carpetaDocs, nombreArchivo);
-
-        try (PrintWriter pw = new PrintWriter(new FileWriter(archivo))) {
-            // Encabezado
-            pw.print("Empleado/Mes");
-            for (int j = 0; j < meses; j++) {
-                pw.print(",Mes " + (j + 1));
+    // Exporta los resultados del cliente a un archivo CSV en la carpeta Docs.
+    @Override
+    public void exportarCSV(int clienteId, String nombreArchivo) throws RemoteException {
+        try {
+            // Crear carpeta Docs si no existe
+            File carpetaDocs = new File("Docs");
+            if (!carpetaDocs.exists()) {
+                carpetaDocs.mkdirs();
             }
-            pw.println(",Total Empleado");
 
-            // Filas por empleado
-            for (int i = 0; i < empleados; i++) {
-                pw.print("Empleado " + (i + 1));
-                double suma = 0;
+            // Generar timestamp para el nombre del archivo
+            String timestamp = new java.text.SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(new java.util.Date());
+
+            // Nombre final del archivo con clienteId y timestamp
+            String nombreFinal = "cliente_" + clienteId + "_" + timestamp + "_" + nombreArchivo;
+            File archivo = new File(carpetaDocs, nombreFinal);
+
+            // Recuperar matriz y datos del cliente
+            double[][] matriz = matrices.get(clienteId);
+            int empleados = empleadosPorCliente.get(clienteId);
+            int meses = mesesPorCliente.get(clienteId);
+
+            try (PrintWriter pw = new PrintWriter(new FileWriter(archivo))) {
+                // Escribir encabezado
+                pw.print("Empleado/Mes");
                 for (int j = 0; j < meses; j++) {
-                    pw.print("," + matriz[i][j]);
-                    suma += matriz[i][j];
+                    pw.print(",Mes " + (j + 1));
                 }
-                pw.println("," + suma);
-            }
+                pw.println(",Total Empleado");
 
-            // Promedios por mes
-            pw.print("Promedio por mes");
-            for (int j = 0; j < meses; j++) {
-                double sumaMes = 0;
+                // Escribir filas por empleado
                 for (int i = 0; i < empleados; i++) {
-                    sumaMes += matriz[i][j];
+                    pw.print("Empleado " + (i + 1));
+                    double suma = 0;
+                    for (int j = 0; j < meses; j++) {
+                        pw.print("," + matriz[i][j]);
+                        suma += matriz[i][j];
+                    }
+                    pw.println("," + suma);
                 }
-                pw.print("," + (sumaMes / empleados));
+
+                // Escribir promedios por mes
+                pw.print("Promedio por mes");
+                for (int j = 0; j < meses; j++) {
+                    double sumaMes = 0;
+                    for (int i = 0; i < empleados; i++) {
+                        sumaMes += matriz[i][j];
+                    }
+                    pw.print("," + (sumaMes / empleados));
+                }
+                pw.println(",");
+
+                // Escribir total general
+                double total = 0;
+                for (int i = 0; i < empleados; i++) {
+                    for (int j = 0; j < meses; j++) {
+                        total += matriz[i][j];
+                    }
+                }
+                pw.println("Total General," + total);
             }
-            pw.println(",");
 
-            // Total general
-            pw.println("Total General," + totalGeneral());
+            System.out.println("💾 Cliente " + clienteId + " exportó datos a CSV: " + nombreArchivo);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RemoteException("Error al exportar CSV", e);
         }
-
-        System.out.println("Archivo CSV exportado correctamente en: " + archivo.getAbsolutePath());
-
-    } catch (Exception e) {
-        e.printStackTrace();
-        throw new RemoteException("Error al exportar CSV", e);
     }
-}
-
 }
