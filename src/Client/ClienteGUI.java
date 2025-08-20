@@ -1,25 +1,27 @@
 package Client;
 
 import Interface.SalarioInterface;
-import javax.swing.*;
 import java.awt.*;
-import java.awt.event.*;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
+import javax.swing.*;
 
+// Interfaz gráfica del cliente RMI para la gestión de nómina.
+// Permite ingresar empleados y meses, consultar resultados y exportar a CSV.
 public class ClienteGUI extends JFrame {
-    private SalarioInterface servicio;
-    private int clienteId;
+    private SalarioInterface servicio; // Referencia al objeto remoto RMI
+    private int clienteId; // ID único del cliente
 
-    private JTextField txtEmpleados, txtMeses;
-    private JTextArea areaResultados;
-    private JButton btnGenerar, btnExportar;
+    private JTextField txtEmpleados, txtMeses; // Campos de entrada para empleados y meses
+    private JTextArea areaResultados; // Área para mostrar resultados
+    private JButton btnGenerar, btnExportar; // Botones de acciones
 
     public ClienteGUI() {
         setTitle("Cliente RMI - Nómina");
         setSize(500, 400);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
 
+        // Panel de entrada de datos
         JPanel panel = new JPanel(new GridLayout(3, 2));
         panel.add(new JLabel("Número de empleados:"));
         txtEmpleados = new JTextField();
@@ -37,17 +39,21 @@ public class ClienteGUI extends JFrame {
         add(panel, BorderLayout.NORTH);
         add(new JScrollPane(areaResultados), BorderLayout.CENTER);
 
+        // Panel de botones
         JPanel panelBotones = new JPanel();
         panelBotones.add(btnGenerar);
         panelBotones.add(btnExportar);
         add(panelBotones, BorderLayout.SOUTH);
 
+        // Conexión al servidor RMI
         conectarRMI();
 
+        // Acciones de los botones
         btnGenerar.addActionListener(e -> generarResultados());
         btnExportar.addActionListener(e -> exportarCSV());
     }
 
+    // Conecta con el servidor RMI y registra el cliente
     private void conectarRMI() {
         try {
             Registry registry = LocateRegistry.getRegistry("localhost", 1099);
@@ -58,6 +64,7 @@ public class ClienteGUI extends JFrame {
         }
     }
 
+    // Llama a los métodos remotos para generar la matriz y mostrar los resultados
     private void generarResultados() {
         try {
             int empleados = Integer.parseInt(txtEmpleados.getText());
@@ -89,6 +96,7 @@ public class ClienteGUI extends JFrame {
         }
     }
 
+    // Llama al método remoto para exportar los resultados a un archivo CSV
     private void exportarCSV() {
         try {
             servicio.exportarCSV(clienteId, "salarios_cliente_" + clienteId + ".csv");
@@ -98,6 +106,7 @@ public class ClienteGUI extends JFrame {
         }
     }
 
+    // Método principal: inicia la interfaz gráfica
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new ClienteGUI().setVisible(true));
     }
